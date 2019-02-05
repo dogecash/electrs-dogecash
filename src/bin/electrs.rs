@@ -3,14 +3,14 @@ extern crate error_chain;
 #[macro_use]
 extern crate log;
 
-extern crate electrs;
+extern crate electrs_syscoin;
 
 use error_chain::ChainedError;
 use std::process;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-use electrs::{
+use electrs_syscoin::{
     config::Config,
     daemon::Daemon,
     errors::*,
