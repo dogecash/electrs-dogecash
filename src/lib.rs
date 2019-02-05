@@ -3,7 +3,6 @@
 extern crate base64;
 extern crate bincode;
 extern crate bitcoin;
-extern crate syscoin_bech32;
 extern crate chan_signal;
 extern crate crypto;
 extern crate dirs;
@@ -22,6 +21,7 @@ extern crate rocksdb;
 extern crate secp256k1;
 extern crate serde;
 extern crate stderrlog;
+extern crate syscoin_bech32;
 extern crate sysconf;
 extern crate time;
 extern crate tiny_http;

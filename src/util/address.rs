@@ -23,8 +23,8 @@
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
-use syscoin_bech32::{self, u5, WitnessProgram};
 use secp256k1::key::PublicKey;
+use syscoin_bech32::{self, u5, WitnessProgram};
 
 use bitcoin::blockdata::opcodes;
 use bitcoin::blockdata::script;
