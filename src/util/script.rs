@@ -2,8 +2,8 @@ use crate::chain::Network;
 use crate::util::{Address, Payload};
 use bitcoin::util::hash::Hash160;
 use bitcoin::Script;
-use bitcoin_bech32::constants::Network as B32Network;
-use bitcoin_bech32::{u5, WitnessProgram};
+use syscoin_bech32::constants::Network as B32Network;
+use syscoin_bech32::{u5, WitnessProgram};
 
 // @XXX we can't use any of the Address:p2{...}h utility methods, since they expect the pre-image data, which we don't have.
 // we must instead create the Payload manually, which results in code duplication with the p2{...}h methods, especially for witness programs.

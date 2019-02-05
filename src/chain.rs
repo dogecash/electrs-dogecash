@@ -8,7 +8,7 @@ use bitcoin::blockdata::constants::genesis_block;
 use bitcoin::network::constants::Network as BNetwork;
 use bitcoin::util::hash::BitcoinHash;
 use bitcoin::util::hash::Sha256dHash;
-use bitcoin_bech32::constants::Network as B32Network;
+use syscoin_bech32::constants::Network as B32Network;
 
 #[cfg(not(feature = "liquid"))]
 pub type Value = u64;
@@ -100,8 +100,8 @@ impl From<&Network> for BNetwork {
 impl From<&Network> for B32Network {
     fn from(network: &Network) -> Self {
         match network {
-            Network::Bitcoin => B32Network::Bitcoin,
-            Network::Testnet => B32Network::Testnet,
+            Network::Bitcoin => B32Network::Syscoin,
+            Network::Testnet => B32Network::SyscoinTestnet,
             Network::Regtest => B32Network::Regtest,
             #[cfg(feature = "liquid")]
             Network::Liquid => B32Network::Bitcoin, // @FIXME

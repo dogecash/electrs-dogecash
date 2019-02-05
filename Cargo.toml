@@ -1,13 +1,13 @@
 [package]
-name = "electrs"
-version = "0.4.1"
-authors = ["Roman Zeyde <me@romanzey.de>"]
+name = "electrs-syscoin"
+version = "0.4.2"
+authors = ["Jagdeep Sidhu <jsidhu@blockchainfoundry.co>"]
 description = "An efficient re-implementation of Electrum Server in Rust"
 license = "MIT"
-homepage = "https://github.com/romanz/electrs"
-repository = "https://github.com/romanz/electrs"
+homepage = "https://github.com/syscoin/electrs-syscoin"
+repository = "https://github.com/syscoin/electrs-syscoin"
 keywords = ["bitcoin", "electrum", "server", "index", "database"]
-documentation = "https://docs.rs/electrs/"
+documentation = "https://docs.rs/electrs-syscoin/"
 readme = "README.md"
 edition = "2018"
 
@@ -19,7 +19,7 @@ liquid = ["elements"]
 arrayref = "0.3"
 base64 = "0.9"
 bincode = "1.0"
-bitcoin-bech32 = "0.8.0"
+syscoin-bech32 = "0.8.4"
 chan = "0.1"
 chan-signal = "0.3"
 clap = "2.31"
@@ -51,7 +51,7 @@ tiny_http = "0.6"
 url = "1.0"
 
 [dependencies.syscoin]
-version = "0.16.9"
+version = "0.16.12"
 features = ["serde"]
 
 

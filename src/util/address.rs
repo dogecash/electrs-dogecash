@@ -23,7 +23,7 @@
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
-use bitcoin_bech32::{self, u5, WitnessProgram};
+use syscoin_bech32::{self, u5, WitnessProgram};
 use secp256k1::key::PublicKey;
 
 use bitcoin::blockdata::opcodes;
@@ -176,15 +176,15 @@ impl Address {
 
     #[inline]
     /// convert Network to bech32 network (this should go away soon)
-    fn bech_network(network: Network) -> bitcoin_bech32::constants::Network {
+    fn bech_network(network: Network) -> syscoin_bech32::constants::Network {
         match network {
-            Network::Bitcoin => bitcoin_bech32::constants::Network::Bitcoin,
-            Network::Testnet => bitcoin_bech32::constants::Network::Testnet,
-            Network::Regtest => bitcoin_bech32::constants::Network::Regtest,
+            Network::Bitcoin => syscoin_bech32::constants::Network::Syscoin,
+            Network::Testnet => syscoin_bech32::constants::Network::SyscoinTestnet,
+            Network::Regtest => syscoin_bech32::constants::Network::Regtest,
 
             // this should never actually happen, Liquid does not have bech32 addresses
             #[cfg(feature = "liquid")]
-            Network::Liquid | Network::LiquidRegtest => bitcoin_bech32::constants::Network::Bitcoin,
+            Network::Liquid | Network::LiquidRegtest => syscoin_bech32::constants::Network::Bitcoin,
         }
     }
 
@@ -269,18 +269,18 @@ impl FromStr for Address {
 
     fn from_str(s: &str) -> Result<Address, encode::Error> {
         // bech32 (note that upper or lowercase is allowed but NOT mixed case)
-        if s.starts_with("bc1")
-            || s.starts_with("BC1")
-            || s.starts_with("tb1")
-            || s.starts_with("TB1")
-            || s.starts_with("bcrt1")
-            || s.starts_with("BCRT1")
+        if s.starts_with("sc1")
+            || s.starts_with("SC1")
+            || s.starts_with("ts1")
+            || s.starts_with("TS1")
+            || s.starts_with("scrt1")
+            || s.starts_with("SCRT1")
         {
             let witprog = WitnessProgram::from_address(s)?;
             let network = match witprog.network() {
-                bitcoin_bech32::constants::Network::Bitcoin => Network::Bitcoin,
-                bitcoin_bech32::constants::Network::Testnet => Network::Testnet,
-                bitcoin_bech32::constants::Network::Regtest => Network::Regtest,
+                syscoin_bech32::constants::Network::Bitcoin => Network::Bitcoin,
+                syscoin_bech32::constants::Network::SyscoinTestnet => Network::Testnet,
+                syscoin_bech32::constants::Network::Regtest => Network::Regtest,
                 _ => panic!("unknown network"),
             };
             if witprog.version().to_u8() != 0 {
