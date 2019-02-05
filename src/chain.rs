@@ -35,8 +35,8 @@ impl Network {
 
     pub fn magic(&self) -> u32 {
         match self {
-            Network::Bitcoin => 0xD9B4BEF9,
-            Network::Testnet => 0x0709110B,
+            Network::Bitcoin => 0xFFCAE2CE,
+            Network::Testnet => 0xFECAE2CE,
             Network::Regtest => 0xDAB5BFFA,
 
             #[cfg(feature = "liquid")]

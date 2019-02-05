@@ -184,7 +184,7 @@ impl Address {
 
             // this should never actually happen, Liquid does not have bech32 addresses
             #[cfg(feature = "liquid")]
-            Network::Liquid | Network::LiquidRegtest => syscoin_bech32::constants::Network::Bitcoin,
+            Network::Liquid | Network::LiquidRegtest => syscoin_bech32::constants::Network::Syscoin,
         }
     }
 
@@ -278,7 +278,7 @@ impl FromStr for Address {
         {
             let witprog = WitnessProgram::from_address(s)?;
             let network = match witprog.network() {
-                syscoin_bech32::constants::Network::Bitcoin => Network::Bitcoin,
+                syscoin_bech32::constants::Network::Syscoin => Network::Bitcoin,
                 syscoin_bech32::constants::Network::SyscoinTestnet => Network::Testnet,
                 syscoin_bech32::constants::Network::Regtest => Network::Regtest,
                 _ => panic!("unknown network"),
