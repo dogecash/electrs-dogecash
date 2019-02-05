@@ -14,7 +14,7 @@ readme = "README.md"
 arrayref = "0.3"
 base64 = "0.9"
 bincode = "1.0"
-bitcoin-bech32 = "0.8.0"
+syscoin-bech32 = "0.8.4"
 chan = "0.1"
 chan-signal = "0.3"
 clap = "2.31"
@@ -43,5 +43,5 @@ url = "1.0"
 lru-cache = "0.1.1"
 
 [dependencies.syscoin]
-version = "0.16.9"
+version = "0.16.12"
 features = ["serde"]

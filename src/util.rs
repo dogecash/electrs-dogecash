@@ -336,8 +336,8 @@ use bitcoin::network::constants::Network;
 use bitcoin::util::address::{Address, Payload};
 use bitcoin::util::hash::Hash160;
 use bitcoin::Script;
-use bitcoin_bech32::constants::Network as B32Network;
-use bitcoin_bech32::{u5, WitnessProgram};
+use syscoin_bech32::constants::Network as B32Network;
+use syscoin_bech32::{u5, WitnessProgram};
 
 // @XXX we can't use any of the Address:p2{...}h utility methods, since they expect the pre-image data, which we don't have.
 // we must instead create the Payload manually, which results in code duplication with the p2{...}h methods, especially for witness programs.
@@ -380,8 +380,8 @@ pub fn script_to_address(script: &Script, network: &Network) -> Option<String> {
 
 fn to_bech_network(network: &Network) -> B32Network {
     match network {
-        Network::Bitcoin => B32Network::Bitcoin,
-        Network::Testnet => B32Network::Testnet,
+        Network::Bitcoin => B32Network::Syscoin,
+        Network::Testnet => B32Network::SyscoinTestnet,
         Network::Regtest => B32Network::Regtest,
     }
 }
