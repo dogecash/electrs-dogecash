@@ -7,7 +7,7 @@ pub use elements::{confidential, Block, BlockHeader, OutPoint, Transaction, TxIn
 use bitcoin::blockdata::constants::genesis_block;
 use bitcoin::network::constants::Network as BNetwork;
 use bitcoin::util::hash::BitcoinHash;
-use bitcoin::util::hash::Sha256dHash;
+use bitcoin_hashes::sha256d;
 use syscoin_bech32::constants::Network as B32Network;
 
 #[cfg(not(feature = "liquid"))]
@@ -28,7 +28,7 @@ pub enum Network {
 }
 
 impl Network {
-    pub fn genesis_hash(&self) -> Sha256dHash {
+    pub fn genesis_hash(&self) -> sha256d::Hash {
         let block = genesis_block(BNetwork::from(self));
         block.bitcoin_hash()
     }

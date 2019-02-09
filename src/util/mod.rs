@@ -23,10 +23,10 @@ use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
 use std::thread;
 
 use crate::chain::BlockHeader;
-use bitcoin::util::hash::Sha256dHash;
+use bitcoin_hashes::sha256d;
 
 pub type Bytes = Vec<u8>;
-pub type HeaderMap = HashMap<Sha256dHash, BlockHeader>;
+pub type HeaderMap = HashMap<sha256d::Hash, BlockHeader>;
 
 // TODO: consolidate serialization/deserialize code for bincode/bitcoin.
 const HASH_LEN: usize = 32;

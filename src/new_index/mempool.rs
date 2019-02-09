@@ -1,5 +1,6 @@
 use bitcoin::consensus::encode::serialize;
-use bitcoin::util::hash::Sha256dHash;
+use bitcoin_hashes::sha256d;
+use bitcoin_hashes::Hash;
 use itertools::Itertools;
 
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -18,9 +19,9 @@ use crate::util::{has_prevout, Bytes};
 
 pub struct Mempool {
     chain: Arc<ChainQuery>,
-    txstore: HashMap<Sha256dHash, Transaction>,
+    txstore: HashMap<sha256d::Hash, Transaction>,
     history: HashMap<FullHash, Vec<TxHistoryInfo>>, // ScriptHash -> {history_entries}
-    edges: HashMap<OutPoint, (Sha256dHash, u32)>,   // OutPoint -> (spending_txid, spending_vin)
+    edges: HashMap<OutPoint, (sha256d::Hash, u32)>,   // OutPoint -> (spending_txid, spending_vin)
     // monitoring
     latency: HistogramVec, // mempool requests latency
     delta: HistogramVec,   // # of added/removed txs
@@ -49,11 +50,11 @@ impl Mempool {
         }
     }
 
-    pub fn lookup_txn(&self, txid: &Sha256dHash) -> Option<Transaction> {
+    pub fn lookup_txn(&self, txid: &sha256d::Hash) -> Option<Transaction> {
         self.txstore.get(txid).map(|item| item.clone())
     }
 
-    pub fn lookup_raw_txn(&self, txid: &Sha256dHash) -> Option<Bytes> {
+    pub fn lookup_raw_txn(&self, txid: &sha256d::Hash) -> Option<Bytes> {
         self.txstore.get(txid).map(serialize)
     }
 
@@ -154,10 +155,10 @@ impl Mempool {
             .getmempooltxids()
             .chain_err(|| "failed to update mempool from daemon")?;
         let old_txids = HashSet::from_iter(self.txstore.keys().cloned());
-        let to_remove: HashSet<&Sha256dHash> = old_txids.difference(&new_txids).collect();
+        let to_remove: HashSet<&sha256d::Hash> = old_txids.difference(&new_txids).collect();
 
         // Download and add new transactions from bitcoind's mempool
-        let txids: Vec<&Sha256dHash> = new_txids.difference(&old_txids).collect();
+        let txids: Vec<&sha256d::Hash> = new_txids.difference(&old_txids).collect();
         let to_add = match daemon.gettransactions(&txids) {
             Ok(txs) => txs,
             Err(err) => {
@@ -200,7 +201,7 @@ impl Mempool {
         };
         for txid in txids {
             let tx = self.txstore.get(&txid).expect("missing mempool tx");
-            let txid_bytes = txid.into_bytes();
+            let txid_bytes = txid.into_inner();
             // An iterator over (ScriptHash, TxHistoryInfo)
             let spending = tx.input.iter().enumerate().map(|(index, txi)| {
                 let prev_txo = txos
@@ -211,7 +212,7 @@ impl Mempool {
                     TxHistoryInfo::Spending(SpendingInfo {
                         txid: txid_bytes,
                         vin: index as u16,
-                        prev_txid: txi.previous_output.txid.into_bytes(),
+                        prev_txid: txi.previous_output.txid.into_inner(),
                         prev_vout: txi.previous_output.vout as u16,
                         value: prev_txo.value,
                     }),
@@ -267,10 +268,10 @@ impl Mempool {
         Ok(txos)
     }
 
-    fn get_prevouts(&self, txids: &[Sha256dHash]) -> BTreeSet<OutPoint> {
+    fn get_prevouts(&self, txids: &[sha256d::Hash]) -> BTreeSet<OutPoint> {
         txids
             .iter()
-            .map(|txid| self.txstore.get(&txid).expect("missing mempool tx"))
+            .map(|txid| self.txstore.get(txid).expect("missing mempool tx"))
             .flat_map(|tx| {
                 tx.input
                     .iter()
@@ -280,7 +281,7 @@ impl Mempool {
             .collect()
     }
 
-    fn remove(&mut self, to_remove: HashSet<&Sha256dHash>) {
+    fn remove(&mut self, to_remove: HashSet<&sha256d::Hash>) {
         self.delta
             .with_label_values(&["remove"])
             .observe(to_remove.len() as f64);
@@ -288,7 +289,7 @@ impl Mempool {
 
         for txid in &to_remove {
             self.txstore
-                .remove(&txid)
+                .remove(*txid)
                 .expect(&format!("missing mempool tx {}", txid));
         }
         // TODO: make it more efficient (currently it takes O(|mempool|) time)
@@ -302,7 +303,7 @@ impl Mempool {
     }
 }
 
-fn get_entry_txid(entry: &TxHistoryInfo) -> Sha256dHash {
+fn get_entry_txid(entry: &TxHistoryInfo) -> sha256d::Hash {
     match entry {
         TxHistoryInfo::Funding(info) => parse_hash(&info.txid),
         TxHistoryInfo::Spending(info) => parse_hash(&info.txid),

@@ -1,4 +1,4 @@
-use bitcoin::util::hash::Sha256dHash;
+use bitcoin_hashes::sha256d;
 
 use crate::chain::{TxIn, TxOut};
 use crate::util::BlockId;
@@ -10,7 +10,7 @@ use crate::util::REGTEST_INITIAL_ISSUANCE_PREVOUT;
 pub struct TransactionStatus {
     pub confirmed: bool,
     pub block_height: Option<usize>,
-    pub block_hash: Option<Sha256dHash>,
+    pub block_hash: Option<sha256d::Hash>,
     pub block_time: Option<u32>,
 }
 
@@ -46,7 +46,7 @@ pub fn has_prevout(txin: &TxIn) -> bool {
     #[cfg(feature = "liquid")]
     return !txin.is_coinbase()
         && !txin.is_pegin
-        && txin.previous_output.txid.be_hex_string() != REGTEST_INITIAL_ISSUANCE_PREVOUT;
+        && format!("{:x}", txin.previous_output.txid) != REGTEST_INITIAL_ISSUANCE_PREVOUT;
 }
 
 pub fn is_spendable(txout: &TxOut) -> bool {

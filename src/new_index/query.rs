@@ -1,4 +1,4 @@
-use bitcoin::util::hash::Sha256dHash;
+use bitcoin_hashes::sha256d;
 use rayon::prelude::*;
 
 use std::collections::{BTreeSet, HashMap};
@@ -41,12 +41,12 @@ impl Query {
         )
     }
 
-    pub fn lookup_txn(&self, txid: &Sha256dHash) -> Option<Transaction> {
+    pub fn lookup_txn(&self, txid: &sha256d::Hash) -> Option<Transaction> {
         self.chain
             .lookup_txn(txid)
             .or_else(|| self.mempool().lookup_txn(txid))
     }
-    pub fn lookup_raw_txn(&self, txid: &Sha256dHash) -> Option<Bytes> {
+    pub fn lookup_raw_txn(&self, txid: &sha256d::Hash) -> Option<Bytes> {
         self.chain
             .lookup_raw_txn(txid)
             .or_else(|| self.mempool().lookup_raw_txn(txid))
@@ -84,7 +84,7 @@ impl Query {
             .collect()
     }
 
-    pub fn get_tx_status(&self, txid: &Sha256dHash) -> TransactionStatus {
+    pub fn get_tx_status(&self, txid: &sha256d::Hash) -> TransactionStatus {
         TransactionStatus::from(self.chain.tx_confirming_block(txid))
     }
 }

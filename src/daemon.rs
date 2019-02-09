@@ -1,7 +1,7 @@
 use base64;
 use bitcoin::consensus::encode::{deserialize, serialize};
 use bitcoin::util::hash::BitcoinHash;
-use bitcoin::util::hash::Sha256dHash;
+use bitcoin_hashes::sha256d;
 use glob;
 use hex;
 use serde_json::{from_str, from_value, Value};
@@ -16,11 +16,11 @@ use crate::chain::{Block, BlockHeader, Network, Transaction};
 use crate::metrics::{HistogramOpts, HistogramVec, Metrics};
 use crate::signal::Waiter;
 use crate::util::HeaderList;
-
+use bitcoin_hashes::hex::FromHex;
 use crate::errors::*;
 
-fn parse_hash(value: &Value) -> Result<Sha256dHash> {
-    Ok(Sha256dHash::from_hex(
+fn parse_hash(value: &Value) -> Result<sha256d::Hash> {
+    Ok(sha256d::Hash::from_hex(
         value
             .as_str()
             .chain_err(|| format!("non-string value: {}", value))?,
@@ -450,14 +450,14 @@ impl Daemon {
         Ok(from_value(info).chain_err(|| "invalid network info")?)
     }
 
-    pub fn getbestblockhash(&self) -> Result<Sha256dHash> {
+    pub fn getbestblockhash(&self) -> Result<sha256d::Hash> {
         parse_hash(&self.request("getbestblockhash", json!([]))?).chain_err(|| "invalid blockhash")
     }
 
-    pub fn getblockheader(&self, blockhash: &Sha256dHash) -> Result<BlockHeader> {
+    pub fn getblockheader(&self, blockhash: &sha256d::Hash) -> Result<BlockHeader> {
         header_from_value(self.request(
             "getblockheader",
-            json!([blockhash.be_hex_string(), /*verbose=*/ false]),
+            json!([format!("{:x}", blockhash), /*verbose=*/ false]),
         )?)
     }
 
@@ -475,23 +475,23 @@ impl Daemon {
         Ok(result)
     }
 
-    pub fn getblock(&self, blockhash: &Sha256dHash) -> Result<Block> {
+    pub fn getblock(&self, blockhash: &sha256d::Hash) -> Result<Block> {
         let block = block_from_value(self.request(
             "getblock",
-            json!([blockhash.be_hex_string(), /*verbose=*/ false]),
+            json!([format!("{:x}", blockhash), /*verbose=*/ false]),
         )?)?;
         assert_eq!(block.bitcoin_hash(), *blockhash);
         Ok(block)
     }
 
-    pub fn getblock_raw(&self, blockhash: &Sha256dHash, verbose: u32) -> Result<Value> {
-        self.request("getblock", json!([blockhash.be_hex_string(), verbose]))
+    pub fn getblock_raw(&self, blockhash: &sha256d::Hash, verbose: u32) -> Result<Value> {
+        self.request("getblock", json!([format!("{:x}", blockhash), verbose]))
     }
 
-    pub fn getblocks(&self, blockhashes: &[Sha256dHash]) -> Result<Vec<Block>> {
+    pub fn getblocks(&self, blockhashes: &[sha256d::Hash]) -> Result<Vec<Block>> {
         let params_list: Vec<Value> = blockhashes
             .iter()
-            .map(|hash| json!([hash.be_hex_string(), /*verbose=*/ false]))
+            .map(|hash| json!([format!("{:x}", hash), /*verbose=*/ false]))
             .collect();
         let values = self.requests("getblock", &params_list)?;
         let mut blocks = vec![];
@@ -501,10 +501,10 @@ impl Daemon {
         Ok(blocks)
     }
 
-    pub fn gettransactions(&self, txhashes: &[&Sha256dHash]) -> Result<Vec<Transaction>> {
+    pub fn gettransactions(&self, txhashes: &[&sha256d::Hash]) -> Result<Vec<Transaction>> {
         let params_list: Vec<Value> = txhashes
             .iter()
-            .map(|txhash| json!([txhash.be_hex_string(), /*verbose=*/ false]))
+            .map(|txhash| json!([format!("{:x}", txhash), /*verbose=*/ false]))
             .collect();
 
         let values = self.requests("getrawtransaction", &params_list)?;
@@ -516,7 +516,7 @@ impl Daemon {
         Ok(txs)
     }
 
-    pub fn getmempooltxids(&self) -> Result<HashSet<Sha256dHash>> {
+    pub fn getmempooltxids(&self) -> Result<HashSet<sha256d::Hash>> {
         let txids: Value = self.request("getrawmempool", json!([/*verbose=*/ false]))?;
         let mut result = HashSet::new();
         for value in txids.as_array().chain_err(|| "non-array result")? {
@@ -525,8 +525,8 @@ impl Daemon {
         Ok(result)
     }
 
-    pub fn getmempoolentry(&self, txid: &Sha256dHash) -> Result<MempoolEntry> {
-        let entry = self.request("getmempoolentry", json!([txid.be_hex_string()]))?;
+    pub fn getmempoolentry(&self, txid: &sha256d::Hash) -> Result<MempoolEntry> {
+        let entry = self.request("getmempoolentry", json!([format!("{:x}", txid)]))?;
         let fee = (entry
             .get("fee")
             .chain_err(|| "missing fee")?
@@ -541,20 +541,20 @@ impl Daemon {
         Ok(MempoolEntry::new(fee, vsize))
     }
 
-    pub fn broadcast(&self, tx: &Transaction) -> Result<Sha256dHash> {
+    pub fn broadcast(&self, tx: &Transaction) -> Result<sha256d::Hash> {
         self.broadcast_raw(&hex::encode(serialize(tx)))
     }
 
-    pub fn broadcast_raw(&self, txhex: &String) -> Result<Sha256dHash> {
+    pub fn broadcast_raw(&self, txhex: &String) -> Result<sha256d::Hash> {
         let txid = self.request("sendrawtransaction", json!([txhex]))?;
         Ok(
-            Sha256dHash::from_hex(txid.as_str().chain_err(|| "non-string txid")?)
+            sha256d::Hash::from_hex(txid.as_str().chain_err(|| "non-string txid")?)
                 .chain_err(|| "failed to parse txid")?,
         )
     }
 
-    fn get_all_headers(&self, tip: &Sha256dHash) -> Result<Vec<BlockHeader>> {
-        let info: Value = self.request("getblockheader", json!([tip.be_hex_string()]))?;
+    fn get_all_headers(&self, tip: &sha256d::Hash) -> Result<Vec<BlockHeader>> {
+        let info: Value = self.request("getblockheader", json!([format!("{:x}", tip)]))?;
         let tip_height = info
             .get("height")
             .expect("missing height")
@@ -563,7 +563,7 @@ impl Daemon {
         let all_heights: Vec<usize> = (0..tip_height + 1).collect();
         let chunk_size = 100_000;
         let mut result = vec![];
-        let null_hash = Sha256dHash::default();
+        let null_hash = sha256d::Hash::default();
         for heights in all_heights.chunks(chunk_size) {
             trace!("downloading {} block headers", heights.len());
             let mut headers = self.getblockheaders(&heights)?;
@@ -584,7 +584,7 @@ impl Daemon {
     pub fn get_new_headers(
         &self,
         indexed_headers: &HeaderList,
-        bestblockhash: &Sha256dHash,
+        bestblockhash: &sha256d::Hash,
     ) -> Result<Vec<BlockHeader>> {
         // Iterate back over headers until known blockash is found:
         if indexed_headers.len() == 0 {
@@ -597,7 +597,7 @@ impl Daemon {
             bestblockhash,
         );
         let mut new_headers = vec![];
-        let null_hash = Sha256dHash::default();
+        let null_hash = sha256d::Hash::default();
         let mut blockhash = *bestblockhash;
         while blockhash != null_hash {
             if indexed_headers.header_by_blockhash(&blockhash).is_some() {

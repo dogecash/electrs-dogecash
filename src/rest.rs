@@ -13,14 +13,14 @@ use crate::util::{
 use crate::util::{BlockProofValue, IssuanceValue, PegOutRequest};
 
 use bitcoin::consensus::encode::{self, serialize};
-use bitcoin::util::hash::{HexError, Sha256dHash};
 use bitcoin::{BitcoinHash, Script};
+use bitcoin_hashes::sha256d;
 use futures::sync::oneshot;
 use hex::{self, FromHexError};
 use hyper::rt::{self, Future};
 use hyper::service::service_fn_ok;
 use hyper::{Body, Method, Request, Response, Server, StatusCode};
-
+use bitcoin_hashes::hex::FromHex;
 #[cfg(feature = "liquid")]
 use elements::confidential::{Asset, Value};
 
@@ -64,16 +64,16 @@ impl From<BlockHeaderMeta> for BlockValue {
     fn from(blockhm: BlockHeaderMeta) -> Self {
         let header = blockhm.header_entry.header();
         BlockValue {
-            id: header.bitcoin_hash().be_hex_string(),
+            id: format!("{:x}", header.bitcoin_hash()),
             height: blockhm.header_entry.height() as u32,
             version: header.version,
             timestamp: header.time,
             tx_count: blockhm.meta.tx_count,
             size: blockhm.meta.size,
             weight: blockhm.meta.weight,
-            merkle_root: header.merkle_root.be_hex_string(),
-            previousblockhash: if &header.prev_blockhash != &Sha256dHash::default() {
-                Some(header.prev_blockhash.be_hex_string())
+            merkle_root: format!("{:x}", header.merkle_root) ,
+            previousblockhash: if &header.prev_blockhash != &sha256d::Hash::default() {
+                Some(format!("{:x}", header.prev_blockhash))
             } else {
                 None
             },
@@ -91,7 +91,7 @@ impl From<BlockHeaderMeta> for BlockValue {
 
 #[derive(Serialize, Deserialize)]
 struct TransactionValue {
-    txid: Sha256dHash,
+    txid: sha256d::Hash,
     version: u32,
     locktime: u32,
     vin: Vec<TxInValue>,
@@ -168,7 +168,7 @@ impl
 
 #[derive(Serialize, Deserialize, Clone)]
 struct TxInValue {
-    txid: Sha256dHash,
+    txid: sha256d::Hash,
     vout: u32,
     prevout: Option<TxOutValue>,
     scriptsig: Script,
@@ -257,7 +257,7 @@ impl From<(TxOut, &Config)> for TxOutValue {
         };
         #[cfg(feature = "liquid")]
         let asset = match txout.asset {
-            Asset::Explicit(value) => Some(value.be_hex_string()),
+            Asset::Explicit(value) => Some(format!("{:x}", value)),
             _ => None,
         };
         #[cfg(feature = "liquid")]
@@ -322,7 +322,7 @@ impl From<(TxOut, &Config)> for TxOutValue {
 
 #[derive(Serialize)]
 struct UtxoValue {
-    txid: Sha256dHash,
+    txid: sha256d::Hash,
     vout: u32,
     status: TransactionStatus,
     #[cfg(not(feature = "liquid"))]
@@ -362,7 +362,7 @@ impl From<Utxo> for UtxoValue {
 #[derive(Serialize)]
 struct SpendingValue {
     spent: bool,
-    txid: Option<Sha256dHash>,
+    txid: Option<sha256d::Hash>,
     vin: Option<u32>,
     status: Option<TransactionStatus>,
 }
@@ -504,7 +504,7 @@ fn handle_request(
     ) {
         (&Method::GET, Some(&"blocks"), Some(&"tip"), Some(&"hash"), None, None) => http_message(
             StatusCode::OK,
-            query.chain().best_hash().be_hex_string(),
+            format!("{:x}", query.chain().best_hash()),
             TTL_SHORT,
         ),
 
@@ -525,10 +525,10 @@ fn handle_request(
                 .header_by_height(height)
                 .ok_or_else(|| HttpError::not_found("Block not found".to_string()))?;
             let ttl = ttl_by_depth(Some(height), query);
-            http_message(StatusCode::OK, header.hash().be_hex_string(), ttl)
+            http_message(StatusCode::OK, format!("{:x}", header.hash()), ttl)
         }
         (&Method::GET, Some(&"block"), Some(hash), None, None, None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let blockhm = query
                 .chain()
                 .get_block_with_meta(&hash)
@@ -537,13 +537,13 @@ fn handle_request(
             json_response(block_value, TTL_LONG)
         }
         (&Method::GET, Some(&"block"), Some(hash), Some(&"status"), None, None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let status = query.chain().get_block_status(&hash);
             let ttl = ttl_by_depth(status.height, query);
             json_response(status, ttl)
         }
         (&Method::GET, Some(&"block"), Some(hash), Some(&"txids"), None, None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let txids = query
                 .chain()
                 .get_block_txids(&hash)
@@ -551,7 +551,7 @@ fn handle_request(
             json_response(txids, TTL_LONG)
         }
         (&Method::GET, Some(&"block"), Some(hash), Some(&"txs"), start_index, None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let txids = query
                 .chain()
                 .get_block_txids(&hash)
@@ -653,7 +653,7 @@ fn handle_request(
             last_seen_txid,
         ) => {
             let script_hash = to_scripthash(script_type, script_str, &config.network_type)?;
-            let last_seen_txid = last_seen_txid.and_then(|txid| Sha256dHash::from_hex(txid).ok());
+            let last_seen_txid = last_seen_txid.and_then(|txid| sha256d::Hash::from_hex(txid).ok());
 
             let txs = query.chain().history(
                 &script_hash[..],
@@ -717,7 +717,7 @@ fn handle_request(
             json_response(utxos, TTL_SHORT)
         }
         (&Method::GET, Some(&"tx"), Some(hash), None, None, None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let tx = query
                 .lookup_txn(&hash)
                 .ok_or_else(|| HttpError::not_found("Transaction not found".to_string()))?;
@@ -729,7 +729,7 @@ fn handle_request(
             json_response(tx, ttl)
         }
         (&Method::GET, Some(&"tx"), Some(hash), Some(&"hex"), None, None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let rawtx = query
                 .lookup_raw_txn(&hash)
                 .ok_or_else(|| HttpError::not_found("Transaction not found".to_string()))?;
@@ -737,7 +737,7 @@ fn handle_request(
             http_message(StatusCode::OK, hex::encode(rawtx), ttl)
         }
         (&Method::GET, Some(&"tx"), Some(hash), Some(&"status"), None, None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let status = query.get_tx_status(&hash);
             let ttl = ttl_by_depth(status.block_height, query);
             json_response(status, ttl)
@@ -745,7 +745,7 @@ fn handle_request(
         // TODO: implement merkle proof
         /*
         (&Method::GET, Some(&"tx"), Some(hash), Some(&"merkle-proof"), None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let status = query.get_tx_status(&hash);
             if !status.confirmed {
                 bail!("Transaction is unconfirmed".to_string())
@@ -759,7 +759,7 @@ fn handle_request(
         }
         */
         (&Method::GET, Some(&"tx"), Some(hash), Some(&"outspend"), Some(index), None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let outpoint = OutPoint {
                 txid: hash,
                 vout: index.parse::<u32>()?,
@@ -777,7 +777,7 @@ fn handle_request(
             json_response(spend, ttl)
         }
         (&Method::GET, Some(&"tx"), Some(hash), Some(&"outspends"), None, None) => {
-            let hash = Sha256dHash::from_hex(hash)?;
+            let hash = sha256d::Hash::from_hex(hash)?;
             let tx = query
                 .lookup_txn(&hash)
                 .ok_or_else(|| HttpError::not_found("Transaction not found".to_string()))?;
@@ -920,8 +920,8 @@ impl From<ParseIntError> for HttpError {
         HttpError::from("Invalid number".to_string())
     }
 }
-impl From<HexError> for HttpError {
-    fn from(_e: HexError) -> Self {
+impl From<encode::Error> for HttpError {
+    fn from(_e: encode::Error) -> Self {
         //HttpError::from(e.description().to_string())
         HttpError::from("Invalid hex string".to_string())
     }
@@ -949,13 +949,12 @@ impl From<serde_json::Error> for HttpError {
         HttpError::generic()
     }
 }
-impl From<encode::Error> for HttpError {
-    fn from(_e: encode::Error) -> Self {
-        //HttpError::from(e.description().to_string())
-        HttpError::generic()
+
+impl From<bitcoin_hashes::error::Error> for HttpError {
+    fn from(_e: bitcoin_hashes::error::Error) -> Self {
+        HttpError::from("Invalid hex string".to_string())
     }
 }
-
 #[cfg(test)]
 mod tests {
     use crate::rest::HttpError;

@@ -30,19 +30,19 @@ use bitcoin::blockdata::opcodes;
 use bitcoin::blockdata::script;
 use bitcoin::consensus::encode;
 use bitcoin::util::base58;
-use bitcoin::util::hash::Hash160;
+use bitcoin_hashes::hash160;
 
 use crate::chain::Network;
-
+use bitcoin_hashes::Hash;
 /// The method used to produce an address
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Payload {
     /// pay-to-pubkey
     Pubkey(PublicKey),
     /// pay-to-pkhash address
-    PubkeyHash(Hash160),
+    PubkeyHash(hash160::Hash),
     /// P2SH address
-    ScriptHash(Hash160),
+    ScriptHash(hash160::Hash),
     /// Segwit address
     WitnessProgram(WitnessProgram),
 }
@@ -64,7 +64,7 @@ impl Address {
     pub fn p2pkh(pk: &PublicKey, network: Network) -> Address {
         Address {
             network: network,
-            payload: Payload::PubkeyHash(Hash160::from_data(&pk.serialize()[..])),
+            payload: Payload::PubkeyHash(hash160::Hash::hash(&pk.serialize()[..])),
         }
     }
 
@@ -75,7 +75,7 @@ impl Address {
     pub fn p2upkh(pk: &PublicKey, network: Network) -> Address {
         Address {
             network: network,
-            payload: Payload::PubkeyHash(Hash160::from_data(&pk.serialize_uncompressed()[..])),
+            payload: Payload::PubkeyHash(hash160::Hash::hash(&pk.serialize_uncompressed()[..])),
         }
     }
 
@@ -96,7 +96,7 @@ impl Address {
     pub fn p2sh(script: &script::Script, network: Network) -> Address {
         Address {
             network: network,
-            payload: Payload::ScriptHash(Hash160::from_data(&script[..])),
+            payload: Payload::ScriptHash(hash160::Hash::hash(&script[..])),
         }
     }
 
@@ -109,7 +109,7 @@ impl Address {
                 // unwrap is safe as witness program is known to be correct as above
                 WitnessProgram::new(
                     u5::try_from_u8(0).expect("0<32"),
-                    Hash160::from_data(&pk.serialize()[..])[..].to_vec(),
+                    hash160::Hash::hash(&pk.serialize()[..])[..].to_vec(),
                     Address::bech_network(network),
                 )
                 .unwrap(),
@@ -122,10 +122,10 @@ impl Address {
     pub fn p2shwpkh(pk: &PublicKey, network: Network) -> Address {
         let builder = script::Builder::new()
             .push_int(0)
-            .push_slice(&Hash160::from_data(&pk.serialize()[..])[..]);
+            .push_slice(&hash160::Hash::hash(&pk.serialize()[..])[..]);
         Address {
             network: network,
-            payload: Payload::ScriptHash(Hash160::from_data(builder.into_script().as_bytes())),
+            payload: Payload::ScriptHash(hash160::Hash::hash(builder.into_script().as_bytes())),
         }
     }
 
@@ -170,7 +170,7 @@ impl Address {
 
         Address {
             network: network,
-            payload: Payload::ScriptHash(Hash160::from_data(ws.as_bytes())),
+            payload: Payload::ScriptHash(hash160::Hash::hash(ws.as_bytes())),
         }
     }
 
@@ -217,7 +217,7 @@ impl Display for Address {
         match self.payload {
             // note: serialization for pay-to-pk is defined, but is irreversible
             Payload::Pubkey(ref pk) => {
-                let hash = &Hash160::from_data(&pk.serialize_uncompressed()[..]);
+                let hash = &hash160::Hash::hash(&pk.serialize_uncompressed()[..]);
                 let mut prefixed = [0; 21];
                 prefixed[0] = match self.network {
                     Network::Bitcoin => 0,
@@ -312,39 +312,39 @@ impl FromStr for Address {
         let (network, payload) = match data[0] {
             0 => (
                 Network::Bitcoin,
-                Payload::PubkeyHash(Hash160::from(&data[1..])),
+                Payload::PubkeyHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
             5 => (
                 Network::Bitcoin,
-                Payload::ScriptHash(Hash160::from(&data[1..])),
+                Payload::ScriptHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
             111 => (
                 Network::Testnet,
-                Payload::PubkeyHash(Hash160::from(&data[1..])),
+                Payload::PubkeyHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
             196 => (
                 Network::Testnet,
-                Payload::ScriptHash(Hash160::from(&data[1..])),
+                Payload::ScriptHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
             #[cfg(feature = "liquid")]
             57 => (
                 Network::Liquid,
-                Payload::PubkeyHash(Hash160::from(&data[1..])),
+                Payload::PubkeyHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
             #[cfg(feature = "liquid")]
             39 => (
                 Network::Liquid,
-                Payload::ScriptHash(Hash160::from(&data[1..])),
+                Payload::ScriptHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
             #[cfg(feature = "liquid")]
             235 => (
                 Network::LiquidRegtest,
-                Payload::PubkeyHash(Hash160::from(&data[1..])),
+                Payload::PubkeyHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
             #[cfg(feature = "liquid")]
             75 => (
                 Network::LiquidRegtest,
-                Payload::ScriptHash(Hash160::from(&data[1..])),
+                Payload::ScriptHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
             x => {
                 return Err(encode::Error::Base58(base58::Error::InvalidVersion(vec![

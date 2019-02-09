@@ -1,18 +1,19 @@
 use crate::chain::Network;
 use crate::util::{Address, Payload};
-use bitcoin::util::hash::Hash160;
+use bitcoin_hashes::hash160;
+
 use bitcoin::Script;
 use syscoin_bech32::constants::Network as B32Network;
 use syscoin_bech32::{u5, WitnessProgram};
-
+use bitcoin_hashes::Hash;
 // @XXX we can't use any of the Address:p2{...}h utility methods, since they expect the pre-image data, which we don't have.
 // we must instead create the Payload manually, which results in code duplication with the p2{...}h methods, especially for witness programs.
 // ideally, this should be implemented as part of the rust-bitcoin lib.
 pub fn script_to_address(script: &Script, network: &Network) -> Option<String> {
     let payload = if script.is_p2pkh() {
-        Some(Payload::PubkeyHash(Hash160::from(&script[3..23])))
+        Some(Payload::PubkeyHash(hash160::Hash::from_slice(&script[3..23]).unwrap()))
     } else if script.is_p2sh() {
-        Some(Payload::ScriptHash(Hash160::from(&script[2..22])))
+        Some(Payload::ScriptHash(hash160::Hash::from_slice(&script[2..22]).unwrap()))
     } else if script.is_v0_p2wpkh() {
         Some(Payload::WitnessProgram(
             WitnessProgram::new(

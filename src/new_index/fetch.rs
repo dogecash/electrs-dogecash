@@ -1,7 +1,8 @@
 use crate::chain::Block;
 
 use bitcoin::consensus::encode::{deserialize, serialize, Decodable};
-use bitcoin::util::hash::{BitcoinHash, Sha256dHash};
+use bitcoin::util::hash::BitcoinHash;
+use bitcoin_hashes::sha256d;
 use rayon::prelude::*;
 
 use std::collections::HashMap;
@@ -76,7 +77,7 @@ fn bitcoind_fetcher(
         chan.into_receiver(),
         spawn_thread("bitcoind_fetcher", move || -> () {
             for entries in new_headers.chunks(100) {
-                let blockhashes: Vec<Sha256dHash> = entries.iter().map(|e| *e.hash()).collect();
+                let blockhashes: Vec<sha256d::Hash> = entries.iter().map(|e| *e.hash()).collect();
                 let blocks = daemon
                     .getblocks(&blockhashes)
                     .expect("failed to get blocks from bitcoind");
@@ -109,7 +110,7 @@ fn blkfiles_fetcher(
     let chan = SyncChannel::new(1);
     let sender = chan.sender();
 
-    let mut entry_map: HashMap<Sha256dHash, HeaderEntry> =
+    let mut entry_map: HashMap<sha256d::Hash, HeaderEntry> =
         new_headers.into_iter().map(|h| (*h.hash(), h)).collect();
 
     let parser = blkfiles_parser(blkfiles_reader(blk_files), magic);

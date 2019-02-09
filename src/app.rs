@@ -1,4 +1,4 @@
-use bitcoin::util::hash::Sha256dHash;
+use bitcoin_hashes::{sha256d, Hash};
 use std::sync::{Arc, Mutex};
 
 use crate::{daemon, index, signal::Waiter, store};
@@ -9,7 +9,7 @@ pub struct App {
     store: store::DBStore,
     index: index::Index,
     daemon: daemon::Daemon,
-    tip: Mutex<Sha256dHash>,
+    tip: Mutex<sha256d::Hash>,
 }
 
 impl App {
@@ -22,7 +22,7 @@ impl App {
             store,
             index,
             daemon: daemon.reconnect()?,
-            tip: Mutex::new(Sha256dHash::default()),
+            tip: Mutex::new(sha256d::Hash::default()),
         }))
     }
 
