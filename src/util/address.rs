@@ -220,8 +220,8 @@ impl Display for Address {
                 let hash = &hash160::Hash::hash(&pk.serialize_uncompressed()[..]);
                 let mut prefixed = [0; 21];
                 prefixed[0] = match self.network {
-                    Network::Bitcoin => 0,
-                    Network::Testnet | Network::Regtest => 111,
+                    Network::Bitcoin => 63,
+                    Network::Testnet | Network::Regtest => 65,
 
                     #[cfg(feature = "liquid")]
                     Network::Liquid => 57,
@@ -234,8 +234,8 @@ impl Display for Address {
             Payload::PubkeyHash(ref hash) => {
                 let mut prefixed = [0; 21];
                 prefixed[0] = match self.network {
-                    Network::Bitcoin => 0,
-                    Network::Testnet | Network::Regtest => 111,
+                    Network::Bitcoin => 63,
+                    Network::Testnet | Network::Regtest => 65,
 
                     #[cfg(feature = "liquid")]
                     Network::Liquid => 57,
