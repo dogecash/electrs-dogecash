@@ -310,7 +310,7 @@ impl FromStr for Address {
         }
 
         let (network, payload) = match data[0] {
-            0 => (
+            63 => (
                 Network::Bitcoin,
                 Payload::PubkeyHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
@@ -318,7 +318,7 @@ impl FromStr for Address {
                 Network::Bitcoin,
                 Payload::ScriptHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),
-            111 => (
+            65 => (
                 Network::Testnet,
                 Payload::PubkeyHash(hash160::Hash::from_slice(&data[1..]).unwrap()),
             ),

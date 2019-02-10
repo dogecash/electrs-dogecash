@@ -52,7 +52,7 @@ tiny_http = "0.6"
 url = "1.0"
 
 [dependencies.syscoin]
-version = "0.16.14"
+version = "0.16.15"
 features = ["use-serde"]
 
 

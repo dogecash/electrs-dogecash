@@ -32,7 +32,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
 use url::form_urlencoded;
-
+use std::error::Error;
 const CHAIN_TXS_PER_PAGE: usize = 25;
 const MAX_MEMPOOL_TXS: usize = 50;
 const BLOCK_LIMIT: usize = 10;
@@ -916,20 +916,17 @@ impl From<String> for HttpError {
 }
 impl From<ParseIntError> for HttpError {
     fn from(_e: ParseIntError) -> Self {
-        //HttpError::from(e.description().to_string())
-        HttpError::from("Invalid number".to_string())
+        HttpError::from(_e.description().to_string())
     }
 }
 impl From<encode::Error> for HttpError {
     fn from(_e: encode::Error) -> Self {
-        //HttpError::from(e.description().to_string())
-        HttpError::from("Invalid hex string".to_string())
+        HttpError::from(_e.description().to_string())
     }
 }
 impl From<FromHexError> for HttpError {
     fn from(_e: FromHexError) -> Self {
-        //HttpError::from(e.description().to_string())
-        HttpError::from("Invalid hex string".to_string())
+        HttpError::from(_e.description().to_string())
     }
 }
 impl From<errors::Error> for HttpError {
@@ -952,7 +949,7 @@ impl From<serde_json::Error> for HttpError {
 
 impl From<bitcoin_hashes::error::Error> for HttpError {
     fn from(_e: bitcoin_hashes::error::Error) -> Self {
-        HttpError::from("Invalid hex string".to_string())
+        HttpError::from("Invalid hex string3".to_string())
     }
 }
 #[cfg(test)]
